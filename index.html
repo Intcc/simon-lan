@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIMON-LAN 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #080c10;
+      --bg2: #0d1117;
+      --neon: #00ffe0;
+      --neon2: #00ff88;
+      --accent: #ff4f00;
+      --dim: #1a2a2a;
+      --text: #cce8e4;
+      --muted: #5a7a75;
+      --card: #0f1e1c;
+      --border: #1f3f3a;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 300;
+      font-size: 18px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,255,224,0.012) 2px,
+        rgba(0,255,224,0.012) 4px
+      );
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* Grid background */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,224,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,224,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper { position: relative; z-index: 1; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      position: relative;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon), transparent);
+    }
+
+    .hero-glow {
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,255,224,0.08) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .tag {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--neon);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.2s;
+    }
+
+    .hero-title {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: clamp(3rem, 12vw, 8rem);
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 0%, var(--neon) 50%, var(--neon2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards 0.4s;
+      text-shadow: none;
+      position: relative;
+    }
+
+    .hero-title::after {
+      content: 'SIMON-LAN';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #fff 0%, var(--neon) 50%, var(--neon2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: blur(18px);
+      opacity: 0.4;
+      z-index: -1;
+    }
+
+    .hero-year {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1rem, 4vw, 2rem);
+      color: var(--muted);
+      letter-spacing: 0.5em;
+      margin-top: 0.5rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards 0.6s;
+    }
+
+    .hero-date {
+      margin-top: 2.5rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: var(--neon);
+      letter-spacing: 0.1em;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards 0.8s;
+    }
+
+    .hero-date span {
+      color: var(--muted);
+      margin: 0 0.5rem;
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      animation: blink 2s infinite;
+    }
+    .scroll-hint::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(var(--neon), transparent);
+      margin: 0.5rem auto 0;
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      padding: 5rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--neon);
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    h2 {
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      margin-bottom: 2rem;
+      color: #fff;
+    }
+
+    /* ── INFO CARDS ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .info-card {
+      background: var(--card);
+      padding: 1.5rem;
+      transition: background 0.2s;
+    }
+    .info-card:hover { background: #162220; }
+
+    .info-card .label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-card .value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.4;
+    }
+
+    .info-card .value.neon { color: var(--neon); }
+    .info-card .value.warn { color: var(--accent); }
+
+    /* ── TIMELINE ── */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 90px;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(var(--neon), transparent);
+    }
+
+    .tl-item {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 1.5rem;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tl-item:last-child { border-bottom: none; }
+
+    .tl-time {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--neon);
+      text-align: right;
+      padding-top: 0.1rem;
+    }
+
+    .tl-content {
+      padding-left: 1.5rem;
+      position: relative;
+    }
+    .tl-content::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: 0.35rem;
+      width: 7px; height: 7px;
+      background: var(--neon);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--neon);
+    }
+
+    .tl-content strong {
+      font-weight: 600;
+      color: #fff;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+    .tl-content p {
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── GAMES ── */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .game-tag {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.75rem 1rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--text);
+      transition: all 0.2s;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+    .game-tag::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--neon);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .game-tag:hover {
+      border-color: var(--neon);
+      color: var(--neon);
+      background: #0d2220;
+    }
+    .game-tag:hover::before { opacity: 1; }
+
+    /* ── NETWORK ── */
+    .net-bar-wrap {
+      margin-bottom: 1.5rem;
+    }
+    .net-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+    }
+    .net-bar-label span:first-child { color: var(--muted); }
+    .net-bar-label span:last-child { color: var(--neon); }
+
+    .net-bar {
+      height: 6px;
+      background: var(--dim);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .net-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon2), var(--neon));
+      border-radius: 2px;
+      animation: barGrow 1.5s cubic-bezier(0.4,0,0.2,1) forwards;
+      transform-origin: left;
+    }
+
+    @keyframes barGrow {
+      from { width: 0; }
+    }
+
+    /* ── FACILITIES ── */
+    .facility-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .facility {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 0.95rem;
+    }
+    .facility .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .facility.ok .dot { background: var(--neon2); box-shadow: 0 0 6px var(--neon2); }
+    .facility.no .dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .facility.no { color: var(--muted); }
+
+    /* ── COSTS ── */
+    .cost-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 3px;
+      padding: 1.5rem 2rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      color: var(--text);
+    }
+    .cost-box strong { color: var(--accent); }
+
+    /* ── MAP LINK ── */
+    .map-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      padding: 0.75rem 1.5rem;
+      border: 1px solid var(--neon);
+      color: var(--neon);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+      text-decoration: none;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    .map-link:hover {
+      background: var(--neon);
+      color: var(--bg);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+    }
+
+    /* ── GALLERY ── */
+    .gallery-featured {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      cursor: zoom-in;
+      background: var(--card);
+    }
+
+    .gallery-featured img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+    }
+
+    .gallery-featured:hover img {
+      transform: scale(1.03);
+    }
+
+    .gallery-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 1rem 1.25rem;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--neon);
+      letter-spacing: 0.15em;
+      pointer-events: none;
+    }
+
+    .gallery-thumbs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .gallery-thumb {
+      aspect-ratio: 16/10;
+      overflow: hidden;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: border-color 0.2s, opacity 0.2s;
+      opacity: 0.5;
+    }
+
+    .gallery-thumb:hover,
+    .gallery-thumb.active {
+      border-color: var(--neon);
+      opacity: 1;
+    }
+
+    .gallery-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .gallery-thumb:hover img {
+      transform: scale(1.08);
+    }
+
+    /* Lightbox */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: 92vw;
+      max-height: 92vh;
+      object-fit: contain;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 1.5rem; right: 1.5rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      cursor: pointer;
+    }
+
+    /* ── COUNTDOWN ── */
+    .countdown {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 3rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards 1s;
+    }
+
+    .cd-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 80px;
+    }
+
+    .cd-num {
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      color: #fff;
+      line-height: 1;
+      position: relative;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.4em 0.6em;
+      min-width: 1.8em;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0,255,224,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+      transition: color 0.15s, box-shadow 0.15s;
+    }
+
+    .cd-num.tick {
+      color: var(--neon);
+      box-shadow: 0 0 30px rgba(0,255,224,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .cd-num::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      top: 50%;
+      height: 1px;
+      background: rgba(0,255,224,0.08);
+    }
+
+    .cd-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.25em;
+      margin-top: 0.5rem;
+    }
+
+    .cd-sep {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      color: var(--neon);
+      opacity: 0.4;
+      margin-bottom: 1.4rem;
+      animation: blink 1s infinite;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 1; }
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <div class="wrapper">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-glow"></div>
+      <div class="tag">// LAN-PARTY EVENT 2026</div>
+      <h1 class="hero-title">SIMON-LAN</h1>
+      <div class="hero-year">2026</div>
+      <div class="hero-date">
+        FR 28.08 18:00<span>—</span>SO 30.08 16:00
+      </div>
+      <div class="countdown" id="countdown">
+        <div class="cd-block">
+          <div class="cd-num" id="cd-days">000</div>
+          <div class="cd-label">TAGE</div>
+        </div>
+        <div class="cd-sep">:</div>
+        <div class="cd-block">
+          <div class="cd-num" id="cd-hours">00</div>
+          <div class="cd-label">STUNDEN</div>
+        </div>
+        <div class="cd-sep">:</div>
+        <div class="cd-block">
+          <div class="cd-num" id="cd-minutes">00</div>
+          <div class="cd-label">MINUTEN</div>
+        </div>
+        <div class="cd-sep">:</div>
+        <div class="cd-block">
+          <div class="cd-num" id="cd-seconds">00</div>
+          <div class="cd-label">SEKUNDEN</div>
+        </div>
+      </div>
+
+      <div class="scroll-hint">SCROLL</div>
+    </div>
+
+    <!-- ECKDATEN -->
+    <section>
+      <div class="section-label">01 // Eckdaten</div>
+      <h2>Das Wichtigste</h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="label">Datum</div>
+          <div class="value">28.–30. August 2026</div>
+        </div>
+        <div class="info-card">
+          <div class="label">Start</div>
+          <div class="value neon">Freitag, 18:00 Uhr</div>
+        </div>
+        <div class="info-card">
+          <div class="label">Ende</div>
+          <div class="value">Sonntag, 16:00 Uhr</div>
+        </div>
+        <div class="info-card">
+          <div class="label">Ort</div>
+          <div class="value">Altes Schützenhaus<br/>Sandloch, 5512 Wohlenschwil</div>
+        </div>
+        <div class="info-card">
+          <div class="label">Parkplätze</div>
+          <div class="value neon">Vorhanden ✓</div>
+        </div>
+        <div class="info-card">
+          <div class="label">Kosten</div>
+          <div class="value warn">Nach der Party</div>
+        </div>
+      </div>
+
+      <a class="map-link" href="https://maps.google.com/?q=Sandloch+5512+Wohlenschwil" target="_blank">
+        ↗ Google Maps öffnen
+      </a>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ABLAUF -->
+    <section>
+      <div class="section-label">02 // Ablauf</div>
+      <h2>Programm</h2>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-time">FR 18:00</div>
+          <div class="tl-content">
+            <strong>Ankommen & Aufbau</strong>
+            <p>Platz suchen, Setup aufbauen, Kabel verlegen – je früher du kommst, desto besseren Platz schnappst du dir.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-time">FR 20:00</div>
+          <div class="tl-content">
+            <strong>LAN startet</strong>
+            <p>Netzwerk ist oben. Let's go.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-time">SA ganztags</div>
+          <div class="tl-content">
+            <strong>Hauptprogramm</strong>
+            <p>Gaming, Turniere, Chaos. Der längste Tag – nutze ihn.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-time">SO 16:00</div>
+          <div class="tl-content">
+            <strong>Ende & Abbau</strong>
+            <p>Bitte pünktlich abbauen – danach folgt die Reinigung. Wer mag, kann beim Zusammenräumen helfen. 🙏</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- NETZWERK -->
+    <section>
+      <div class="section-label">03 // Netzwerk</div>
+      <h2>Konnektivität</h2>
+      <p style="color:var(--muted); margin-bottom: 2rem; font-size: 1rem; line-height: 1.7;">
+        Zwei unabhängige Starlink-Anschlüsse via Load-Balancing-Router. Alles kabelgebunden – bring dein eigenes Patchkabel mit!
+      </p>
+
+      <div class="net-bar-wrap">
+        <div class="net-bar-label">
+          <span>Download (total)</span>
+          <span>~ 2 × 250 Mbit/s</span>
+        </div>
+        <div class="net-bar"><div class="net-bar-fill" style="width:100%"></div></div>
+      </div>
+      <div class="net-bar-wrap">
+        <div class="net-bar-label">
+          <span>Upload (total)</span>
+          <span>~ 2 × 25 Mbit/s</span>
+        </div>
+        <div class="net-bar"><div class="net-bar-fill" style="width:20%"></div></div>
+      </div>
+      <div class="net-bar-wrap">
+        <div class="net-bar-label">
+          <span>Pro Person (↓ est.)</span>
+          <span>~ 40 Mbit/s</span>
+        </div>
+        <div class="net-bar"><div class="net-bar-fill" style="width:40%"></div></div>
+      </div>
+
+      <div style="margin-top:1.5rem; padding: 1rem 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: 3px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--muted); line-height: 1.8;">
+        ⚠ Starlink = Satellit → Latenz ~20–50ms. Für Gaming völlig okay, aber kein Glasfaser.<br/>
+        ✓ Kein WLAN — <strong style="color:var(--text)">eigenes Cat5e/Cat6 Patchkabel mitbringen!</strong>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- GAMES -->
+    <section>
+      <div class="section-label">04 // Games</div>
+      <h2>Was gespielt wird</h2>
+      <div class="games-grid">
+        <div class="game-tag">Counter-Strike 2</div>
+        <div class="game-tag">Dota 2</div>
+        <div class="game-tag">Dota Underlords</div>
+        <div class="game-tag">Battlefield</div>
+        <div class="game-tag">Overwatch 2</div>
+        <div class="game-tag">ARC Raiders</div>
+        <div class="game-tag">WC3 Tower Defense</div>
+        <div class="game-tag">FlatOut 2</div>
+        <div class="game-tag">Pummel Party</div>
+        <div class="game-tag">Trackmania</div>
+        <div class="game-tag">& vieles mehr...</div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- INFRASTRUKTUR -->
+    <section>
+      <div class="section-label">05 // Vor Ort</div>
+      <h2>Infrastruktur</h2>
+      <div class="facility-grid">
+        <div class="facility ok"><div class="dot"></div> Kühlschränke</div>
+        <div class="facility ok"><div class="dot"></div> Backofen</div>
+        <div class="facility ok"><div class="dot"></div> WC</div>
+        <div class="facility ok"><div class="dot"></div> Parkplätze</div>
+        <div class="facility ok"><div class="dot"></div> Steckdosen</div>
+        <div class="facility no"><div class="dot"></div> Kein Warmwasser</div>
+      </div>
+
+      <div style="margin-top: 1.5rem; padding: 1rem 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: 3px; font-size: 0.85rem; color: var(--muted); line-height: 1.8;">
+        💡 <strong style="color:var(--text)">Mitbringen – Pflicht:</strong><br/>
+        Cat5e/Cat6 Patchkabel <strong style="color:var(--neon)">10m</strong> · Steckdosenleiste<br/><br/>
+        💡 <strong style="color:var(--text)">Mitbringen – Empfohlen:</strong><br/>
+        Eigenes Essen & Getränke · Mehrfachstecker · Schlafsack/Matte wenn du die Nacht bleibst<br/><br/>
+        🔇 <strong style="color:var(--accent)">Verboten: Lautsprecher</strong> — Kopfhörer verwenden!
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- KOSTEN -->
+    <section>
+      <div class="section-label">09 // Kosten</div>
+      <h2>Was kostet es?</h2>
+      <div class="cost-box">
+        Die Teilnahmekosten werden <strong>nach der Veranstaltung</strong> eingetrieben.<br/>
+        <br/>
+        Ich rechne mit ca. <strong style="color:#00ffe0; font-size:1.15em;">CHF 85.– bis CHF 100.–</strong> pro Person.<br/>
+        <br/>
+        Der genaue Betrag hängt von den effektiven <strong>Reinigungskosten</strong> ab.<br/>
+        → Aufgeteilt auf alle Teilnehmenden. Fair und transparent.
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- LOCATION GALLERY -->
+    <section>
+      <div class="section-label">07 // Location</div>
+      <h2>Das Schützenhaus</h2>
+      <p style="color:var(--muted); margin-bottom: 2rem; font-size: 1rem; line-height: 1.7;">
+        Altes Schützenhaus Wohlenschwil – rustikaler Charme, grosse Tische, Küche und genug Platz für 9 Gamer.
+      </p>
+
+      <!-- Featured image -->
+      <div class="gallery-featured" id="galleryFeatured">
+        <img src="img1.png" alt="Location Aussenansicht" id="featuredImg" />
+        <div class="gallery-overlay">
+          <span id="featuredLabel">Aussenansicht</span>
+        </div>
+      </div>
+
+      <!-- Thumbnails -->
+      <div class="gallery-thumbs">
+        <div class="gallery-thumb active" onclick="setFeatured(0)" data-label="Aussenansicht">
+          <img src="img1.png" alt="" />
+        </div>
+        <div class="gallery-thumb" onclick="setFeatured(1)" data-label="Innenraum – Überblick">
+          <img src="img2.png" alt="" />
+        </div>
+        <div class="gallery-thumb" onclick="setFeatured(2)" data-label="Küche & Sitzbereich">
+          <img src="img3.png" alt="" />
+        </div>
+        <div class="gallery-thumb" onclick="setFeatured(3)" data-label="Bestuhlung & Aussicht">
+          <img src="img4.png" alt="" />
+        </div>
+        <div class="gallery-thumb" onclick="setFeatured(4)" data-label="Tische – LAN-ready">
+          <img src="img5.png" alt="" />
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- TEILNEHMER -->
+    <section>
+      <div class="section-label">08 // Teilnehmer</div>
+      <h2>Dabei</h2>
+      <div class="games-grid" style="grid-auto-rows: 1fr;">
+        <div class="game-tag" style="display:flex; align-items:center; justify-content:center; text-align:center; min-height: 70px;">Alain</div>
+        <div class="game-tag" style="display:flex; align-items:center; justify-content:center; text-align:center; min-height: 70px;">Beat</div>
+        <div class="game-tag" style="display:flex; align-items:center; justify-content:center; text-align:center; min-height: 70px;">Daedalus</div>
+        <div class="game-tag" style="display:flex; align-items:center; justify-content:center; text-align:center; min-height: 70px;">Darmfigg Dani</div>
+        <div class="game-tag" style="display:flex; align-items:center; justify-content:center; text-align:center; min-height: 70px;">Erwin</div>
+        <div class="game-tag" style="display:flex; align-items:center; justify-content:center; text-align:center; min-height: 70px;">Frefi</div>
+        <div class="game-tag" style="display:flex; align-items:center; justify-content:center; text-align:center; min-height: 70px;">Martin</div>
+        <div class="game-tag" style="display:flex; align-items:center; justify-content:center; text-align:center; min-height: 70px;">Röle</div>
+        <div class="game-tag" style="border-color: var(--neon); color: var(--neon); display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; min-height: 70px;">👑 Simon <span style="font-size:0.7rem; color: var(--muted); display:block; margin-top:0.2rem;">Organisator</span></div>
+      </div>
+      <div style="margin-top: 1.25rem; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--muted);">
+        9 / 12 Plätze belegt
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      SIMON-LAN 2026 &nbsp;·&nbsp; 28.–30. AUGUST &nbsp;·&nbsp; WOHLENSCHWIL
+    </footer>
+
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-close">ESC / KLICK ZUM SCHLIESSEN</div>
+    <img id="lightboxImg" src="" alt="" />
+  </div>
+
+  <script>
+    const images = [
+      { src: 'img1.png', label: 'Aussenansicht' },
+      { src: 'img2.png', label: 'Innenraum – Überblick' },
+      { src: 'img3.png', label: 'Küche & Sitzbereich' },
+      { src: 'img4.png', label: 'Bestuhlung & Aussicht' },
+      { src: 'img5.png', label: 'Tische – LAN-ready' },
+    ];
+
+    function setFeatured(index) {
+      const featuredImg = document.getElementById('featuredImg');
+      const featuredLabel = document.getElementById('featuredLabel');
+      featuredImg.style.opacity = '0';
+      setTimeout(() => {
+        featuredImg.src = images[index].src;
+        featuredLabel.textContent = images[index].label;
+        featuredImg.style.opacity = '1';
+      }, 200);
+      document.querySelectorAll('.gallery-thumb').forEach((t, i) => {
+        t.classList.toggle('active', i === index);
+      });
+    }
+
+    // Open lightbox on featured click
+    document.getElementById('galleryFeatured').addEventListener('click', () => {
+      const src = document.getElementById('featuredImg').src;
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightbox').classList.add('open');
+    });
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  </script>
+  <script>
+    const target = new Date('2026-08-28T18:00:00').getTime();
+
+    function pad(n, len = 2) {
+      return String(n).padStart(len, '0');
+    }
+
+    function tick() {
+      const now = Date.now();
+      const diff = target - now;
+
+      if (diff <= 0) {
+        document.getElementById('cd-days').textContent = '000';
+        document.getElementById('cd-hours').textContent = '00';
+        document.getElementById('cd-minutes').textContent = '00';
+        document.getElementById('cd-seconds').textContent = '00';
+        return;
+      }
+
+      const days    = Math.floor(diff / 86400000);
+      const hours   = Math.floor((diff % 86400000) / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+
+      const els = {
+        'cd-days':    pad(days, 3),
+        'cd-hours':   pad(hours),
+        'cd-minutes': pad(minutes),
+        'cd-seconds': pad(seconds)
+      };
+
+      for (const [id, val] of Object.entries(els)) {
+        const el = document.getElementById(id);
+        if (el.textContent !== val) {
+          el.textContent = val;
+          el.classList.remove('tick');
+          void el.offsetWidth; // reflow
+          el.classList.add('tick');
+          setTimeout(() => el.classList.remove('tick'), 300);
+        }
+      }
+    }
+
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
